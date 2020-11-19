@@ -1,6 +1,5 @@
-node_modules
 .env
-dist
-data
+node_modules
 .idea
 .vscode
+data

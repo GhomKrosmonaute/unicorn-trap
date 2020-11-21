@@ -1,18 +1,13 @@
 const Enmap = require("enmap")
 
-module.exports = {
-  defaultSettings: {
-    prefix: process.env.PREFIX ?? ".",
-    mode: "gradient",
-    roles: "hoist",
-  },
-  defaultPalette: [],
-  settings: new Enmap({ name: "settings" }),
-  palettes: new Enmap({ name: "palettes" }),
-  getSettings(id) {
-    return this.settings.ensure(id, this.defaultSettings)
-  },
-  getPalette(id) {
-    return this.palettes.ensure(id, this.defaultPalette)
-  },
+module.exports = new Enmap({ name: "settings" })
+
+module.exports.ensure = function (id) {
+  return super.ensure(id, {
+    prefix: process.env.PREFIX ?? "}",
+    easing: "linear", // or [easing1, easing2] for sequence
+    roles: "hoist", // or "all" or [role_id] for custom
+    palette: "rainbow", // or [color_hex] for custom
+    reverse: false,
+  })
 }

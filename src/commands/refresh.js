@@ -13,12 +13,11 @@ module.exports = class extends akairo.Command {
   }
 
   async exec(message, args) {
-    if (message.guild?.ownerID !== message.author.id) {
+    if (message.guild.ownerID !== message.author.id) {
       return message.util.send("guild owner only can use this command.")
     }
 
-    const settings = database.getSettings(message.guild.id)
-    const palette = database.getPalette(message.guild.id)
+    const settings = database.ensure(message.guild.id)
     const roleManager = await message.guild.roles.fetch(null, false, true)
 
     let gradient
@@ -44,15 +43,14 @@ module.exports = class extends akairo.Command {
 
     switch (settings.mode) {
       case "reflect":
-      case "mirror":
         gradient = engine.Color.gradient(
-          [...palette.slice(0).reverse(), ...palette],
+          [...settings.palette.slice(0).reverse(), ...settings.palette],
           roles.length
         )
         break
       default:
         // gradient
-        gradient = engine.Color.gradient(palette, roles.length)
+        gradient = engine.Color.gradient(settings.palette, roles.length)
         break
     }
 

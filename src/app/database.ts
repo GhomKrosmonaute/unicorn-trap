@@ -17,7 +17,7 @@ export const db = knex({
     host: process.env.HOST ?? "localhost",
     user: process.env.USER ?? "postgres",
     password: process.env.PASSWORD,
-    database: process.env.DATABASE ?? "postgres"
+    database: process.env.DATABASE ?? "postgres",
   },
 })
 

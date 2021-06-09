@@ -1,10 +1,12 @@
 import * as app from "../app"
-import prefixes from "../tables/prefixes"
 
-const command: app.Command<app.GuildMessage> = {
+import guilds from "../tables/guilds.native"
+
+module.exports = new app.Command({
   name: "prefix",
-  guildOwner: true,
-  guildOnly: true,
+  isDefault: true,
+  guildOwnerOnly: true,
+  channelType: "guild",
   description: "Edit or show the bot prefix",
   positional: [
     {
@@ -23,18 +25,16 @@ const command: app.Command<app.GuildMessage> = {
         )}\``
       )
 
-    await prefixes.query
+    await guilds.query
       .insert({
-        guild_id: message.guild.id,
+        id: message.guild.id,
         prefix: prefix,
       })
-      .onConflict("guild_id")
+      .onConflict("id")
       .merge()
 
     await message.channel.send(
       `My new prefix for "**${message.guild}**" is \`${prefix}\``
     )
   },
-}
-
-module.exports = command
+})

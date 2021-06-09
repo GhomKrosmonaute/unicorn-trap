@@ -5,9 +5,9 @@ const table = new app.Table<{
   prefix: string
 }>({
   name: "guilds",
-  colMaker: (table) => {
+  setup: (table) => {
     table.string("id").unique()
-    table.string("prefix")
+    table.string("prefix").nullable()
   },
 })
 

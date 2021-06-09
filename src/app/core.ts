@@ -1,22 +1,50 @@
 import { join } from "path"
-
-import prettier from "prettier"
+import prettify from "ghom-prettify"
 import dayjs from "dayjs"
+import chalk from "chalk"
 import utc from "dayjs/plugin/utc"
+import relative from "dayjs/plugin/relativeTime"
 import timezone from "dayjs/plugin/timezone"
 import toObject from "dayjs/plugin/toObject"
+import discord from "discord.js"
+import EventEmitter from "events"
+import * as prettier from "prettier"
+
+import * as logger from "./logger"
+
+export const startedAt = Date.now()
+
+export function uptime(): number {
+  return Date.now() - startedAt
+}
+
+export type FullClient = discord.Client & {
+  user: discord.ClientUser & { id: `${bigint}` }
+}
+
+export function isFullClient(client: discord.Client): client is FullClient {
+  return client.user?.id !== undefined
+}
 
 /**
  * Resolve `T` value from `T | (() => T)`
  * @param item - resolvable
  * @param args - parameters for resolvable function
  */
-export function scrap<T, A extends any[] = any[]>(
-  item: T | ((...args: A) => T),
+export function scrap<T, A extends any[] = []>(
+  item: Scrap<T, A>,
   ...args: A
-): T {
+): T | Promise<T> {
   // @ts-ignore
   return typeof item === "function" ? item(...args) : item
+}
+
+export type Scrap<T, A extends any[] = []> =
+  | T
+  | ((...args: A) => T | Promise<T>)
+
+export function slug(...words: string[]): string {
+  return words.join("-")
 }
 
 /**
@@ -30,7 +58,7 @@ export function rootPath(...path: string[]): string {
 /**
  * Simple cache for manage temporary values
  */
-export const cache = new (class {
+export const cache = new (class Cache {
   private data: { [key: string]: any } = {}
 
   get<T>(key: string): T | undefined {
@@ -39,6 +67,10 @@ export const cache = new (class {
 
   set(key: string, value: any) {
     this.data[key] = value
+  }
+
+  delete(key: string) {
+    delete this.data[key]
   }
 
   ensure<T>(key: string, defaultValue: T): T {
@@ -56,7 +88,7 @@ export interface Code {
   content: string
 }
 
-export const CODE = {
+export const code = {
   pattern: /^```(\S+)?\s(.+[^\\])```$/is,
   /**
    * extract the code from code block and return code
@@ -72,35 +104,51 @@ export const CODE = {
   /**
    * inject the code in the code block and return code block
    */
-  stringify({ lang, content }: Code): string {
-    return "```" + (lang ?? "") + "\n" + content + "\n```"
+  stringify({
+    lang,
+    content,
+    format,
+  }: Code & { format?: true | prettier.Options }): string {
+    return (
+      "```" +
+      (lang ?? "") +
+      "\n" +
+      (format
+        ? prettify.format(content, lang, format === true ? undefined : format)
+        : content) +
+      "\n```"
+    )
   },
   /**
    * format the code using prettier and return it
    */
-  format(raw: string, options?: prettier.Options): string {
-    return prettier.format(raw, {
-      semi: false,
-      ...(options ?? {}),
-    })
-  },
+  format: prettify.format,
 }
-;(() => {
-  return import(`dayjs/locale/${process.env.LOCALE}`).then(() =>
-    dayjs.locale(process.env.LOCALE)
+
+const locale = process.env.BOT_LOCALE
+
+import(`dayjs/locale/${locale ?? "en"}`)
+  .then(() => dayjs.locale(locale ?? "en"))
+  .catch(() =>
+    logger.warn(
+      `The ${chalk.bold(
+        locale
+      )} locale is incorrect, please use an existing locale code.`,
+      "core"
+    )
   )
-})()
 
 dayjs.extend(utc)
+dayjs.extend(relative)
 dayjs.extend(timezone)
 dayjs.extend(toObject)
 dayjs.utc(1)
 
-if (process.env.TIMEZONE) dayjs.tz.setDefault(process.env.TIMEZONE)
+if (process.env.BOT_TIMEZONE) dayjs.tz.setDefault(process.env.BOT_TIMEZONE)
 
 export { dayjs }
 
-export function resizeText(
+export function forceTextSize(
   text: string | number,
   size: number,
   before = false
@@ -115,4 +163,32 @@ export function resizeText(
   } else {
     return text
   }
+}
+
+export interface EventEmitters {
+  message:
+    | discord.TextChannel
+    | discord.DMChannel
+    | discord.NewsChannel
+    | discord.User
+    | discord.GuildMember
+    | discord.Guild
+}
+
+export const messageEmitter = new EventEmitter()
+
+export function onceMessage<
+  Event extends keyof Pick<discord.ClientEvents, keyof EventEmitters>
+>(
+  emitter: EventEmitters[Event],
+  cb: (...args: discord.ClientEvents[Event]) => unknown
+) {
+  // @ts-ignore
+  messageEmitter.once(emitter.id, cb)
+}
+
+export function emitMessage<
+  Event extends keyof Pick<discord.ClientEvents, keyof EventEmitters>
+>(emitter: EventEmitters[Event], ...args: discord.ClientEvents[Event]) {
+  messageEmitter.emit(emitter.id, ...args)
 }

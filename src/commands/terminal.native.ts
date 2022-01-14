@@ -1,7 +1,9 @@
-import * as app from "../app"
 import cp from "child_process"
 
-module.exports = new app.Command({
+import * as app from "../app.js"
+import * as core from "../app/core.js"
+
+export default new app.Command({
   name: "terminal",
   description: "Run shell command from Discord",
   aliases: ["term", "cmd", "command", "exec", ">", "process", "shell"],
@@ -17,18 +19,24 @@ module.exports = new app.Command({
   async run(message) {
     message.triggerCoolDown()
 
-    const toEdit = await message.channel.send(
-      new app.MessageEmbed().setTitle("The process is running...")
-    )
+    const toEdit = await message.channel.send({
+      embeds: [
+        new core.SafeMessageEmbed()
+          .setColor()
+          .setTitle("The process is running..."),
+      ],
+    })
 
     cp.exec(message.rest, { cwd: process.cwd() }, (err, stdout, stderr) => {
       const output = err
         ? err.stack ?? err.message
         : stderr.trim() || stdout || null
 
-      const embed = new app.MessageEmbed().setTitle(
-        err ? "\\❌ An error has occurred." : "\\✔ Successfully executed."
-      )
+      const embed = new core.SafeMessageEmbed()
+        .setColor(err ? "RED" : "BLURPLE")
+        .setTitle(
+          err ? "\\❌ An error has occurred." : "\\✔ Successfully executed."
+        )
 
       if (output)
         embed.setDescription(
@@ -42,8 +50,8 @@ module.exports = new app.Command({
           })
         )
 
-      toEdit.edit(embed).catch(() => {
-        message.channel.send(embed).catch()
+      toEdit.edit({ embeds: [embed] }).catch(() => {
+        message.channel.send({ embeds: [embed] }).catch()
       })
     })
   },

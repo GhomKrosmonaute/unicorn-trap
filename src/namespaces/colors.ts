@@ -1,3 +1,5 @@
+import * as app from "../app"
+
 export type ResolvableColor = RGB | string | number
 
 export type RGB = RGBArray | RGBInterface
@@ -127,4 +129,14 @@ export function randomColor() {
     Math.floor(Math.random() * 255),
     Math.floor(Math.random() * 255),
   ])
+}
+
+export interface Mode {
+  description: string
+}
+
+export const modes: Record<string, Mode> = {
+  GRADIENT: {description: "Linear gradient"},
+  REFLECT: {description: "Linear gradient + reversed linear gradient from middle"},
+  REPEAT: {description: "Repeat colors in loop"}
 }

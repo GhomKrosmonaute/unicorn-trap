@@ -1,5 +1,7 @@
 import * as app from "../app"
 
+import { getConfig } from "../tables/config.js"
+
 export type ResolvableColor = RGB | string | number
 
 export type RGB = RGBArray | RGBInterface
@@ -136,7 +138,25 @@ export interface Mode {
 }
 
 export const modes: Record<string, Mode> = {
-  GRADIENT: {description: "Linear gradient"},
-  REFLECT: {description: "Linear gradient + reversed linear gradient from middle"},
-  REPEAT: {description: "Repeat colors in loop"}
+  GRADIENT: { description: "Linear gradient" },
+  REFLECT: {
+    description: "Linear gradient + reversed linear gradient from middle",
+  },
+  REPEAT: { description: "Repeat colors in loop" },
+}
+
+export async function applyColors(guild: app.Guild, hoistOnly = false) {
+  const config = await getConfig(guild)
+  const roles = await guild.roles.fetch()
+  const mode = modes[config.mode]
+  // todo: continue here
+}
+
+export const applyInProgress: app.Middleware<"guild"> = (message, data) => {
+  return {
+    result: app.cache.get<boolean>(message.guild.id)
+      ? "Update of the colors is already in progress"
+      : true,
+    data,
+  }
 }

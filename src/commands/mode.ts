@@ -13,23 +13,26 @@ export default new app.Command({
       description: "Name of selected mode",
       castValue: (value) => value.toUpperCase(),
       checkCastedValue: (value) => app.modes.hasOwnProperty(value),
-      checkingErrorMessage: "You must select a valid mode."
-    }
+      checkingErrorMessage: "You must select a valid mode.",
+    },
   ],
   async run(message) {
     if (message.args.mode) {
-      await config.query.insert({
-        guild_id: message.guild.id,
-        mode: message.args.mode
-      }).onConflict("guild_id").merge()
+      await config.query
+        .insert({
+          guild_id: message.guild.id,
+          mode: message.args.mode,
+        })
+        .onConflict("guild_id")
+        .merge()
 
       return message.send({
         embeds: [
           new app.SafeMessageEmbed()
             .setColor()
             .setTitle(`Mode updated: ${message.args.mode}`)
-            .setDescription(app.modes[message.args.mode].description)
-        ]
+            .setDescription(app.modes[message.args.mode].description),
+        ],
       })
     }
 
@@ -40,8 +43,8 @@ export default new app.Command({
         new app.SafeMessageEmbed()
           .setColor()
           .setTitle(`Current mode: ${conf.mode}`)
-          .setDescription(app.modes[conf.mode].description)
-      ]
+          .setDescription(app.modes[conf.mode].description),
+      ],
     })
   },
   subs: [
@@ -56,12 +59,16 @@ export default new app.Command({
             new app.SafeMessageEmbed()
               .setColor()
               .setTitle("Mode list")
-              .setDescription(Object.entries(app.modes).map(([name, mode]) => {
-                return `\`${name}\` - ${mode.description}`
-              }).join("\n"))
-          ]
+              .setDescription(
+                Object.entries(app.modes)
+                  .map(([name, mode]) => {
+                    return `\`${name}\` - ${mode.description}`
+                  })
+                  .join("\n")
+              ),
+          ],
         })
-      }
-    })
-  ]
+      },
+    }),
+  ],
 })

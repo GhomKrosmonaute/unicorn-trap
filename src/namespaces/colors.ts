@@ -1,4 +1,4 @@
-import * as app from "../app"
+import * as app from "../app.js"
 
 import { getConfig } from "../tables/config.js"
 
@@ -135,21 +135,62 @@ export function randomColor() {
 
 export interface Mode {
   description: string
+  effect: (colors: Color[], size: number) => Color[]
 }
 
 export const modes: Record<string, Mode> = {
-  GRADIENT: { description: "Linear gradient" },
+  GRADIENT: {
+    description: "Linear gradient",
+    effect: (colors, size) => gradient(colors, size),
+  },
   REFLECT: {
     description: "Linear gradient + reversed linear gradient from middle",
+    effect: (colors, size) =>
+      gradient(colors.concat(colors.slice().reverse()), size),
   },
-  REPEAT: { description: "Repeat colors in loop" },
+  REPEAT: {
+    description: "Repeat colors in loop",
+    effect: (colors, size) => {
+      const newColors = colors
+
+      while (newColors.length < size) {
+        newColors.push(...colors)
+      }
+
+      return newColors.slice(0, size)
+    },
+  },
 }
 
 export async function applyColors(guild: app.Guild, hoistOnly = false) {
+  if (!guild.me) throw new Error("Guild object is not complete")
+
   const config = await getConfig(guild)
-  const roles = await guild.roles.fetch()
   const mode = modes[config.mode]
-  // todo: continue here
+  const allRoles = (await guild.roles.fetch()).filter((role) =>
+    !!guild.me &&
+    guild.me.roles.highest.comparePositionTo(role) > 0
+  )
+  const roles = allRoles
+    .filter((role) => !hoistOnly || role.hoist)
+    .sort((a, b) => a.comparePositionTo(b))
+
+  const colors = mode.effect(
+    config.colors.split(",").map((color) => new Color(color)),
+    roles.size
+  )
+
+  let colorIndex = 0
+  for (const [id, role] of allRoles) {
+    if (roles.has(id)) {
+      // apply color
+      await role.setColor(colors[colorIndex].rgb)
+      colorIndex ++
+    } else {
+      // remove color
+      await role.setColor("DEFAULT")
+    }
+  }
 }
 
 export const applyInProgress: app.Middleware<"guild"> = (message, data) => {

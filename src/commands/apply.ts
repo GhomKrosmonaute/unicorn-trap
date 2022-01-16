@@ -21,6 +21,6 @@ export default new app.Command({
       .applyColors(message.guild, message.args.hoistOnly)
       .finally(() => app.cache.set(message.guild.id, false))
 
-    return message.send("apply command is not yet implemented.")
+    return message.send("Successfully applied colors")
   },
 })

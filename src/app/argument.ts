@@ -101,24 +101,36 @@ export function resolveGivenArgument<Message extends command.NormalMessage>(
 }
 
 export async function checkValue<Message extends command.NormalMessage>(
-  subject: Pick<Option<any>, "checkValue" | "name">,
+  subject: Pick<Option<any>, "checkValue" | "name" | "checkingErrorMessage">,
   subjectType: "positional" | "argument",
   value: string,
   message: Message
 ): Promise<discord.MessageEmbed | true> {
   if (!subject.checkValue) return true
 
+  const errorEmbed = (
+    defaultErrorEmbed: () => discord.MessageEmbed
+  ): discord.MessageEmbed => {
+    if (typeof subject.checkingErrorMessage === "string") {
+      return defaultErrorEmbed().setDescription(subject.checkingErrorMessage)
+    } else if (subject.checkingErrorMessage) {
+      return subject.checkingErrorMessage
+    } else return defaultErrorEmbed()
+  }
+
   if (Array.isArray(subject.checkValue)) {
     if (subject.checkValue.includes(value)) {
-      return new core.SafeMessageEmbed()
-        .setColor("RED")
-        .setAuthor(
-          `Bad ${subjectType} pattern "${subject.name}".`,
-          message.client.user?.displayAvatarURL()
-        )
-        .setDescription(
-          `Expected choice list: \`${subject.checkValue.join(" | ")}\``
-        )
+      const joined = subject.checkValue.join(" | ")
+
+      return errorEmbed(() =>
+        new core.SafeMessageEmbed()
+          .setColor("RED")
+          .setAuthor({
+            name: `Bad ${subjectType} pattern "${subject.name}".`,
+            iconURL: message.client.user?.displayAvatarURL(),
+          })
+          .setDescription(`Expected choice list: \`${joined}\``)
+      )
     } else return true
   }
 
@@ -129,47 +141,53 @@ export async function checkValue<Message extends command.NormalMessage>(
   )
 
   if (typeof checkResult === "string") {
-    return new core.SafeMessageEmbed()
-      .setColor("RED")
-      .setAuthor(
-        `Bad ${subjectType} tested "${subject.name}".`,
-        message.client.user?.displayAvatarURL()
-      )
-      .setDescription(checkResult)
+    return errorEmbed(() =>
+      new core.SafeMessageEmbed()
+        .setColor("RED")
+        .setAuthor({
+          name: `Bad ${subjectType} tested "${subject.name}".`,
+          iconURL: message.client.user?.displayAvatarURL(),
+        })
+        .setDescription(checkResult)
+    )
   }
 
   if (typeof checkResult === "boolean") {
     if (!checkResult) {
-      return new core.SafeMessageEmbed()
-        .setColor("RED")
-        .setAuthor(
-          `Bad ${subjectType} tested "${subject.name}".`,
-          message.client.user?.displayAvatarURL()
-        )
-        .setDescription(
-          typeof subject.checkValue === "function"
-            ? core.code.stringify({
-                content: subject.checkValue.toString(),
-                format: true,
-                lang: "js",
-              })
-            : subject.checkValue instanceof RegExp
-            ? `Expected pattern: \`${subject.checkValue.source}\``
-            : "Please use the `--help` flag for more information."
-        )
+      return errorEmbed(() =>
+        new core.SafeMessageEmbed()
+          .setColor("RED")
+          .setAuthor({
+            name: `Bad ${subjectType} tested "${subject.name}".`,
+            iconURL: message.client.user?.displayAvatarURL(),
+          })
+          .setDescription(
+            typeof subject.checkValue === "function"
+              ? core.code.stringify({
+                  content: subject.checkValue.toString(),
+                  format: true,
+                  lang: "js",
+                })
+              : subject.checkValue instanceof RegExp
+              ? `Expected pattern: \`${subject.checkValue.source}\``
+              : "Please use the `--help` flag for more information."
+          )
+      )
     }
 
     return true
   }
 
   if (!checkResult.test(value)) {
-    return new core.SafeMessageEmbed()
-      .setColor("RED")
-      .setAuthor(
-        `Bad ${subjectType} pattern "${subject.name}".`,
-        message.client.user?.displayAvatarURL()
-      )
-      .setDescription(`Expected pattern: \`${checkResult.source}\``)
+    return errorEmbed(() =>
+      new core.SafeMessageEmbed()
+        .setColor("RED")
+        .setAuthor({
+          name: `Bad ${subjectType} pattern "${subject.name}".`,
+          iconURL: message.client.user?.displayAvatarURL(),
+        })
+        .setDescription(`Expected pattern: \`${checkResult.source}\``)
+    )
   }
   return true
 }
@@ -194,10 +212,10 @@ export async function checkCastedValue<Message extends command.NormalMessage>(
   const errorEmbed = (errorMessage: string): discord.MessageEmbed => {
     const embed = new core.SafeMessageEmbed()
       .setColor("RED")
-      .setAuthor(
-        `Bad ${subjectType} tested "${subject.name}".`,
-        message.client.user?.displayAvatarURL()
-      )
+      .setAuthor({
+        name: `Bad ${subjectType} tested "${subject.name}".`,
+        iconURL: message.client.user?.displayAvatarURL(),
+      })
       .setDescription(errorMessage)
 
     if (subject.checkingErrorMessage) {
@@ -450,10 +468,10 @@ export async function castValue<Message extends command.NormalMessage>(
       if (typeof subject.castingErrorMessage === "string") {
         return new core.SafeMessageEmbed()
           .setColor("RED")
-          .setAuthor(
-            `Bad ${subjectType} type "${subject.name}".`,
-            message.client.user?.displayAvatarURL()
-          )
+          .setAuthor({
+            name: `Bad ${subjectType} type "${subject.name}".`,
+            iconURL: message.client.user?.displayAvatarURL(),
+          })
           .setDescription(
             subject.castingErrorMessage.replace(/@error/g, errorCode)
           )
@@ -464,10 +482,10 @@ export async function castValue<Message extends command.NormalMessage>(
 
     return new core.SafeMessageEmbed()
       .setColor("RED")
-      .setAuthor(
-        `Bad ${subjectType} type "${subject.name}".`,
-        message.client.user?.displayAvatarURL()
-      )
+      .setAuthor({
+        name: `Bad ${subjectType} type "${subject.name}".`,
+        iconURL: message.client.user?.displayAvatarURL(),
+      })
       .setDescription(
         `Cannot cast the value of the "${subject.name}" ${subjectType} to ${
           typeof subject.castValue === "function"

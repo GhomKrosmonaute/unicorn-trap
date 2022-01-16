@@ -200,3 +200,7 @@ export const applyInProgress: app.Middleware<"guild"> = (message, data) => {
     data,
   }
 }
+
+export function isColor(colorResolvable: ResolvableColor): boolean {
+  return true
+}

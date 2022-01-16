@@ -6,6 +6,7 @@ export default new app.Command({
   description: "The apply command",
   channelType: "guild",
   middlewares: [app.applyInProgress],
+  guildOwnerOnly: true,
   flags: [
     {
       name: "hoistOnly",

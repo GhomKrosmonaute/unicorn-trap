@@ -27,4 +27,8 @@ export async function getConfig(guild: app.Guild): Promise<Config> {
   return conf
 }
 
+export async function setConfig(conf: Config) {
+  await config.query.insert(conf).onConflict("guild_id").merge()
+}
+
 export default config

@@ -167,9 +167,8 @@ export async function applyColors(guild: app.Guild, hoistOnly = false) {
 
   const config = await getConfig(guild)
   const mode = modes[config.mode]
-  const allRoles = (await guild.roles.fetch()).filter((role) =>
-    !!guild.me &&
-    guild.me.roles.highest.comparePositionTo(role) > 0
+  const allRoles = (await guild.roles.fetch()).filter(
+    (role) => !!guild.me && guild.me.roles.highest.comparePositionTo(role) > 0
   )
   const roles = allRoles
     .filter((role) => !hoistOnly || role.hoist)
@@ -185,7 +184,7 @@ export async function applyColors(guild: app.Guild, hoistOnly = false) {
     if (roles.has(id)) {
       // apply color
       await role.setColor(colors[colorIndex].rgb)
-      colorIndex ++
+      colorIndex++
     } else {
       // remove color
       await role.setColor("DEFAULT")

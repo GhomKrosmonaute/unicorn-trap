@@ -17,9 +17,12 @@ const config = new app.Table<Config>({
 })
 
 export async function getConfig(guild: app.Guild): Promise<Config> {
-  const conf = await config.query.where({ guild_id: guild.id }).first()
+  let conf = await config.query.where({ guild_id: guild.id }).first()
 
-  if (!conf) throw new Error("I'm not configured for the current guild.")
+  if (!conf) {
+    await config.query.insert({ guild_id: guild.id })
+    conf = (await config.query.where({ guild_id: guild.id }).first()) as Config
+  }
 
   return conf
 }

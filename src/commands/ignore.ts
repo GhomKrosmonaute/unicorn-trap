@@ -5,6 +5,7 @@ import ignoredRole from "../tables/ignoredRole.js"
 export default new app.Command({
   name: "ignore",
   description: "Ignore selected roles",
+  aliases: ["-"],
   channelType: "guild",
   guildOwnerOnly: true,
   rest: {
@@ -22,10 +23,14 @@ export default new app.Command({
 
       return message.send({
         embeds: [
-          new app.SafeMessageEmbed()
-            .setColor()
-            .setTitle("Ignored role list")
-            .setDescription(ignored.map((id) => `<@&${id}>`).join(" ")),
+          new app.SafeMessageEmbed().setColor().setTitle("Ignored role list"),
+          ...app
+            .divider(ignored, 20)
+            .map((list) =>
+              new app.SafeMessageEmbed().setDescription(
+                list.map(({ role_id }) => `<@&${role_id}>`).join(" ")
+              )
+            ),
         ],
       })
     } else {
@@ -88,21 +93,25 @@ export default new app.Command({
         const roles = await message.guild.roles.fetch()
         const factor = message.args.from.comparePositionTo(message.args.to)
         const fromIsHigher = factor > 0
-        const range = []
+        const range: app.Role[] = []
 
         if (factor === 0) range.push(message.args.from)
         else {
           range.push(
-            ...roles.filter((role) => {
-              return (
-                (fromIsHigher
-                  ? role.comparePositionTo(message.args.from)
-                  : role.comparePositionTo(message.args.to)) < 0 &&
-                (fromIsHigher
-                  ? role.comparePositionTo(message.args.to)
-                  : role.comparePositionTo(message.args.from)) > 0
-              )
-            })
+            message.args.from,
+            message.args.to,
+            ...roles
+              .filter((role) => {
+                return (
+                  (fromIsHigher
+                    ? role.comparePositionTo(message.args.from)
+                    : role.comparePositionTo(message.args.to)) < 0 &&
+                  (fromIsHigher
+                    ? role.comparePositionTo(message.args.to)
+                    : role.comparePositionTo(message.args.from)) > 0
+                )
+              })
+              .values()
           )
         }
 
@@ -113,7 +122,7 @@ export default new app.Command({
           }))
         )
 
-        return message.send("Successfully add ignored roles")
+        return message.send("Successfully ignored roles")
       },
     }),
   ],

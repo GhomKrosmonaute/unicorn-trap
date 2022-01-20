@@ -1,6 +1,8 @@
 import * as app from "../app.js"
 
 import { getConfig } from "../tables/config.js"
+import ignoredRole from "../tables/ignoredRole.js"
+import consideredRole from "../tables/consideredRole.js"
 
 export type ResolvableColor = RGB | string | number
 
@@ -165,14 +167,20 @@ export const modes: Record<string, Mode> = {
 export async function applyColors(guild: app.Guild, hoistOnly = false) {
   if (!guild.me) throw new Error("Guild object is not complete")
 
+  const considered = await consideredRole.query.where({ guild_id: guild.id })
+  const ignored = await ignoredRole.query.where({ guild_id: guild.id })
+
   const config = await getConfig(guild)
   const mode = modes[config.mode]
   const allRoles = (await guild.roles.fetch()).filter(
-    (role) => !!guild.me && guild.me.roles.highest.comparePositionTo(role) > 0
+    (role) =>
+      !!guild.me &&
+      guild.me.roles.highest.comparePositionTo(role) > 0 &&
+      !ignored.some((data) => data.role_id === role.id) &&
+      (considered.length === 0 ||
+        considered.some((data) => data.role_id === role.id))
   )
-  const roles = allRoles
-    .filter((role) => !hoistOnly || role.hoist)
-    .sort((a, b) => a.comparePositionTo(b))
+  const roles = allRoles.filter((role) => !hoistOnly || role.hoist)
 
   const colors = mode.effect(
     config.colors.split(",").map((color) => new Color(color)),
@@ -180,7 +188,7 @@ export async function applyColors(guild: app.Guild, hoistOnly = false) {
   )
 
   let colorIndex = 0
-  for (const [id, role] of allRoles) {
+  for (const [id, role] of allRoles.sort((a, b) => a.comparePositionTo(b))) {
     if (roles.has(id)) {
       // apply color
       await role.setColor(colors[colorIndex].rgb)

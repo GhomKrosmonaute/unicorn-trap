@@ -57,7 +57,9 @@ export default new app.Command({
       async run(message) {
         const config = await getConfig(message.guild)
 
-        config.colors = message.args.colors.join(",")
+        if (message.args.colors[0].toLowerCase() === "rainbow")
+          config.colors = app.rainbow.join(",")
+        else config.colors = message.args.colors.join(",")
 
         await setConfig(config)
 

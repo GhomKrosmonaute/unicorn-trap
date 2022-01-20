@@ -1,5 +1,5 @@
 import * as app from "../app.js"
-import { getConfig, setConfig } from "../tables/config"
+import { getConfig, setConfig } from "../tables/config.js"
 
 export default new app.Command({
   name: "color",
